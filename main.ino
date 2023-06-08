@@ -2,9 +2,10 @@
 #include <MPU6050.h>
 #include <LiquidCrystal_I2C.h>
 
-// Pin definitions for the switches
+// Pin definitions for the switches and led
 #define SW1_PIN 2
 #define SW2_PIN 3
+#define LED_PIN 13
 
 LiquidCrystal_I2C lcd(0x27, 16, 2); // Adjust the address (0x3F) if necessary
 
@@ -15,7 +16,6 @@ int stepThreshold = 10000; // Adjust this value as needed
 bool isCounting = true;    // Flag to indicate if step counting is active or stopped
 int prevSW1State = HIGH;
 int currentSW1State = HIGH;
-bool switch1Pressed = false;
 
 void setup() {
   Wire.begin();
@@ -28,9 +28,13 @@ void setup() {
   
   // Print the initial message on the LCD display
   lcd.setCursor(0, 0);
-  lcd.print("Step Count:");
+  lcd.print("Status: ");
+  lcd.print(isCounting ? "Running" : "Stopped");
+
+  // Update the LCD display with the step count on line 1
   lcd.setCursor(0, 1);
-  lcd.print("0");
+  lcd.print("Step Count: ");
+  lcd.print(stepCount);
 
   // Set the switch pins as inputs
   pinMode(SW1_PIN, INPUT_PULLUP);
@@ -48,11 +52,11 @@ void loop() {
   if (currentSW1State == LOW && prevSW1State == HIGH) {
     delay(50); // Debounce delay
 
-    // Toggle the switch1Pressed flag
-    switch1Pressed = !switch1Pressed;
+    // Toggle the isCounting
+    isCounting = !isCounting;
 
     // If counting is resumed, update the previous reading to the current reading
-    if (switch1Pressed) {
+    if (isCounting) {
       previousReading = currentReading;
     }
   }
@@ -68,19 +72,19 @@ void loop() {
     stepCount = 0;
 
     // If counting is stopped, update the LCD display with the reset step count
-    if (!isCounting) {
+    //if (!isCounting) {
       lcd.setCursor(0, 1);
-      lcd.print(stepCount);
-    }
+      lcd.print("Step Count: 0   ");
+    //}
   }
 
   // Control the built-in LED based on the system's activity
   if (isCounting) {
     // Blink the built-in LED at a frequency of 1Hz (0.5s on, 0.5s off)
-    digitalWrite(13, (millis() % 1000 < 500) ? HIGH : LOW);
+    digitalWrite(LED_PIN, (millis() % 1000 < 500) ? HIGH : LOW);
   } else {
     // Turn off the built-in LED to indicate system stoppage
-    digitalWrite(13, LOW);
+    digitalWrite(LED_PIN, LOW);
   }
 
   // Only count steps if the step counting is active
@@ -99,6 +103,7 @@ void loop() {
 
       // Update the LCD display with the step count
       lcd.setCursor(0, 1);
+      lcd.print("Step Count: ");
       lcd.print(stepCount);
 
       // Wait for a short period to avoid counting multiple steps within a short time
@@ -109,4 +114,9 @@ void loop() {
       previousReading = currentReading;
     }
   }
+
+  // Update the LCD display with the status of isCounting on line 2
+  lcd.setCursor(0, 0);
+  lcd.print("Status: ");
+  lcd.print(isCounting ? "Running" : "Stopped");
 }
